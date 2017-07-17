@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -96,19 +97,11 @@ public:
 		cout << "Jacked a packet with legnth of [" << header.len << "]" << endl;
 	}
 
-	void pcapGetEtherSpec();
-	void pcapGetIPSpec();
-	void pcapGetTCPSpec();
-
-
-	pcapClass(){
+	void pcapInitClass(){
 		defineTheDevice();
 		propertiesForDevice();
 		openSessionPromiscuous();
 		filterApplyAndCompile();
-	}
-	~pcapClass(){
-		pcap_close(handle);
 	}
 };
 
@@ -118,10 +111,28 @@ public:
 	struct ether_header *ep;
 	unsigned short ether_type;
 	
-	etherClass(){
+	char destMAC[6];
+	char srcMAC[6];
+
+	void etherInitClass(){
 		ep = (struct ether_header *) packet;
-		packet += sizeof(struct ether_header);
 		ether_type = ntohs(ep->ether_type);
+		
+		cout << "Ethernet Data" << endl;
+
+		cout << "Src MAC      : " ;
+		for(int i=0; i<ETH_ALEN; i++){
+			printf("%.2X ", ep->ether_shost[i]);
+		}
+		cout << endl;
+
+		cout << "Dest MAC     : ";
+		for(int i=0; i<ETH_ALEN; i++){
+			printf("%.2X ", ep->ether_dhost[i]);
+		}
+		cout << "Ethernet type : " << endl << endl;
+
+		packet += sizeof(struct ether_header);
 	}
 
 
@@ -141,7 +152,7 @@ public:
 	
 	struct ip *iph;
 
-	ipClass(){
+	void ipInitClass(){
 		if (ether_type == ETHERTYPE_IP){
 			is_ip = true;
 			iph = (struct ip*)packet;
@@ -150,23 +161,25 @@ public:
 			ip_hl = iph->ip_hl;
 			ip_id = ntohs(iph->ip_id);
 			ip_ttl = iph->ip_ttl;
-			ip_src = inet_ntoa(iph->ip_src);
+			ip_src = inet_ntoa(iph->ip_src); 
 			ip_dst = inet_ntoa(iph->ip_dst);
 		}
 		else{
 			is_ip = false;
 			cout << "This is not IP Packet" << endl;
+			printf("Ethernet type : %x\n", ntohs(ether_type));		
+		
 		}
 	}
 	
 	void printIPSpec(){
-		cout << "IP Packet" << endl;
+		cout << "IP Data" << endl;
 		cout << "Version     : " << ip_v << endl;
 		cout << "Header Len  : " << ip_hl << endl;
 		cout << "ID          : " << ip_id << endl;
 		cout << "TTL         : " << ip_ttl << endl;
-		cout << "Src Address : " << ip_src << endl;
-		cout << "Dst Address : " << ip_dst << endl;
+		cout << "Src Address : " << inet_ntoa(iph->ip_src) << endl;
+		cout << "Dst Address : " << inet_ntoa(iph->ip_dst) << endl;
 	}
 };
 
@@ -177,7 +190,7 @@ public:
 	int tcp_dst;
 	bool is_tcp;
 
-	tcpClass(){
+	void tcpInitClass(){
 		if (iph->ip_p == IPPROTO_TCP){
 			is_tcp = true;
 			tcph = (struct tcphdr *)(packet + ip_hl * 4);
@@ -186,43 +199,44 @@ public:
 		}
 		else {
 			is_tcp = false;
-			cout << "This is not TCP Packet" << endl;
+			cout << "This is not TCP Packet" << endl << endl;
 		}
 	}
 	
 	void printTCPSpec(){
+		cout << "TCP Data" << endl;
 		cout << "Src Port    : " << tcp_src << endl;
-		cout << "Dst Port    : " << tcp_dst << endl;
+		cout << "Dst Port    : " << tcp_dst << endl << endl;
 	}
 };
 
-
-void pcapClass::pcapGetEtherSpec(){
-	etherClass eth;
-}
-
-void pcapClass::pcapGetIPSpec(){
-	ipClass ip;
-	
-	if(ip.is_ip) ip.printIPSpec();
-}
-void pcapClass::pcapGetTCPSpec(){
-	tcpClass tcp;
-
-	if(tcp.is_tcp) tcp.printTCPSpec();
-}
-
-
 int main(){
-	pcapClass p;
-	
+	tcpClass t;
+
+
 	while(1){
-		p.pcapGetPacket();
-		p.pcapPrintNet();
-		p.pcapPrintMask();
-		p.pcapGetEtherSpec();
-		p.pcapGetIPSpec();
-		p.pcapGetTCPSpec();
+		t.pcapInitClass();
+	
+		t.pcapGetPacket();
+
+		if(t.header.len != 0){
+			t.etherInitClass();
+			t.ipInitClass();
+
+			if(t.is_ip){
+				t.printIPSpec();
+				cout << endl;
+
+				t.tcpInitClass();
+				
+				if(t.is_tcp){
+					t.printTCPSpec();
+					cout << endl;
+				}
+			}
+		}
+
+		t.header.len =0;
 	}	
 	return 0;
 }
