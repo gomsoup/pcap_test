@@ -130,6 +130,7 @@ public:
 		for(int i=0; i<ETH_ALEN; i++){
 			printf("%.2X ", ep->ether_dhost[i]);
 		}
+		cout << endl;
 		cout << "Ethernet type : " << endl << endl;
 
 		packet += sizeof(struct ether_header);
@@ -186,16 +187,24 @@ public:
 class tcpClass: public ipClass{
 public:
 	struct tcphdr *tcph;
+	unsigned char *tcpdata;
 	int tcp_src;
 	int tcp_dst;
 	bool is_tcp;
+	const char *payload;
+	int size_payload;
+	int cnt;
 
 	void tcpInitClass(){
 		if (iph->ip_p == IPPROTO_TCP){
 			is_tcp = true;
-			tcph = (struct tcphdr *)(packet + ip_hl * 4);
+			tcph = (struct tcphdr *)(packet + ip_hl*4);
+			tcpdata = (unsigned char *)(packet + ip_hl*4 + tcph->doff *4);
+
 			tcp_src = ntohs(tcph->source);
 			tcp_dst = ntohs(tcph->dest);
+			
+
 		}
 		else {
 			is_tcp = false;
@@ -204,7 +213,16 @@ public:
 	}
 	
 	void printTCPSpec(){
-		cout << "TCP Data" << endl;
+		int cnt =0;
+
+		cout << "-----------------------TCP Data-----------------------" << endl;
+		for(int i=(ip_hl*4)+(tcph->doff*4) ; i< ntohs(iph->ip_len); i++){
+			printf("%02x ", *(tcpdata++));
+			if (cnt % 16 == 0) cout << endl;
+			cnt++;
+		}
+		cout << endl;
+		cout << "------------------------------------------------------" <<endl;
 		cout << "Src Port    : " << tcp_src << endl;
 		cout << "Dst Port    : " << tcp_dst << endl << endl;
 	}
