@@ -110,7 +110,7 @@ public:
 class etherClass: public pcapClass{
 public:
 	struct ether_header *ep;
-	unsigned short ether_type;
+	u_short ether_type;
 	
 	char destMAC[6];
 	char srcMAC[6];
@@ -133,8 +133,6 @@ public:
 		}
 		cout << endl;
 		cout << "Ethernet type : " << endl << endl;
-
-	//	packet += sizeof(struct ether_header);
 	}
 
 
@@ -190,7 +188,7 @@ public:
 class tcpClass: public ipClass{
 public:
 	struct tcphdr *tcph;
-	unsigned char *tcpdata;
+	u_char *tcpdata;
 	int data_size;
 	int tcp_src;
 	int tcp_dst;
@@ -203,7 +201,7 @@ public:
 		if (iph->ip_p == IPPROTO_TCP){
 			is_tcp = true;
 			tcph = (struct tcphdr *)(ipPacket + ip_hl*4);
-			tcpdata = (unsigned char *)(ipPacket + ip_hl*4 + tcph->doff *4);
+			tcpdata = (u_char *)(ipPacket + ip_hl*4 + tcph->doff *4);
 
 			tcp_src = ntohs(tcph->source);
 			tcp_dst = ntohs(tcph->dest);
