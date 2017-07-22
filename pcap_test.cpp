@@ -26,7 +26,7 @@
 
 #define PROMISCUOUS 1
 #define NONPRIMISCUOUS 0
-
+#define ETHER_HEAD_LENGTH 14
 using namespace std;
 
 
@@ -39,8 +39,9 @@ public:
 	char filter_exp[100] = "port 80";	/* The filter expression */
 	bpf_u_int32 mask;		/* Our netmask */
 	bpf_u_int32 net;		/* Our IP */
-	struct pcap_pkthdr header;	/* The header that pcap gives us */
+	struct pcap_pkthdr *header;	/* The header that pcap gives us */
 	const u_char *packet;
+	int res;
 
 	void defineTheDevice(){
 		dev = pcap_lookupdev(errbuf);
@@ -93,8 +94,8 @@ public:
 	}
 
 	void pcapGetPacket(){
-		packet = pcap_next(handle, &header);
-		cout << "Jacked a packet with legnth of [" << header.len << "]" << endl;
+		res = pcap_next_ex(handle, &header, &packet);
+		cout << "Jacked a packet with legnth of [" << header->len << "]" << endl;
 	}
 
 	void pcapInitClass(){
@@ -133,7 +134,7 @@ public:
 		cout << endl;
 		cout << "Ethernet type : " << endl << endl;
 
-		packet += sizeof(struct ether_header);
+	//	packet += sizeof(struct ether_header);
 	}
 
 
@@ -150,13 +151,15 @@ public:
 	int ip_ttl;
 	char *ip_src;
 	char *ip_dst;
-	
+	const u_char *ipPacket;
 	struct ip *iph;
 
 	void ipInitClass(){
 		if (ether_type == ETHERTYPE_IP){
 			is_ip = true;
-			iph = (struct ip*)packet;
+			ipPacket = packet; 
+			ipPacket+=sizeof(struct ether_header);
+			iph = (struct ip*)ipPacket;
 
 			ip_v = iph->ip_v;
 			ip_hl = iph->ip_hl;
@@ -188,6 +191,7 @@ class tcpClass: public ipClass{
 public:
 	struct tcphdr *tcph;
 	unsigned char *tcpdata;
+	int data_size;
 	int tcp_src;
 	int tcp_dst;
 	bool is_tcp;
@@ -198,13 +202,11 @@ public:
 	void tcpInitClass(){
 		if (iph->ip_p == IPPROTO_TCP){
 			is_tcp = true;
-			tcph = (struct tcphdr *)(packet + ip_hl*4);
-			tcpdata = (unsigned char *)(packet + ip_hl*4 + tcph->doff *4);
+			tcph = (struct tcphdr *)(ipPacket + ip_hl*4);
+			tcpdata = (unsigned char *)(ipPacket + ip_hl*4 + tcph->doff *4);
 
 			tcp_src = ntohs(tcph->source);
 			tcp_dst = ntohs(tcph->dest);
-			
-
 		}
 		else {
 			is_tcp = false;
@@ -213,10 +215,11 @@ public:
 	}
 	
 	void printTCPSpec(){
-		int cnt =0;
+		int cnt = 1;
 
 		cout << "-----------------------TCP Data-----------------------" << endl;
-		for(int i=(ip_hl*4)+(tcph->doff*4) ; i< ntohs(iph->ip_len); i++){
+		
+		for(int i= ip_hl*4 + tcph->doff *4 ; i< ntohs(iph->ip_len); i++){
 			printf("%02x ", *(tcpdata++));
 			if (cnt % 16 == 0) cout << endl;
 			cnt++;
@@ -237,7 +240,7 @@ int main(){
 	
 		t.pcapGetPacket();
 
-		if(t.header.len != 0){
+		if(t.header->len != 0){
 			t.etherInitClass();
 			t.ipInitClass();
 
@@ -254,7 +257,7 @@ int main(){
 			}
 		}
 
-		t.header.len =0;
+		t.header->len =0;
 	}	
 	return 0;
 }
