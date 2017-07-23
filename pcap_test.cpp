@@ -43,14 +43,6 @@ public:
 	const u_char *packet;
 	int res;
 
-	void defineTheDevice(){
-		dev = pcap_lookupdev(errbuf);
-		if (dev == NULL){
-			fprintf(stderr, "Couldn't find default device: %s\n", errbuf);
-			exit(2);
-	
-		}
-	}
 	void propertiesForDevice(){
 		if (pcap_lookupnet(dev, &net, &mask, errbuf) == -1){
 			fprintf(stderr, "Couldn't get netmask for device %s: %s\n", dev, errbuf);
@@ -72,14 +64,14 @@ public:
 			exit(2);
 		}
 	}
-	
+
 	void pcapGetPacket(){
 		res = pcap_next_ex(handle, &header, &packet);
 		cout << "Jacked a packet with legnth of [" << header->len << "]" << endl;
 	}
 
-	void pcapInitClass(){
-		defineTheDevice();
+	void pcapInitClass(char *dummy){
+		dev = dummy;
 		propertiesForDevice();
 		openSessionPromiscuous();
 		filterApplyAndCompile();
@@ -112,7 +104,7 @@ public:
 			printf("%.2X ", ep->ether_dhost[i]);
 		}
 		cout << endl;
-		cout << "Ethernet type : " << endl << endl;
+		cout << "Ethernet type : " << ether_type << endl << endl;
 	}
 
 
@@ -152,8 +144,7 @@ public:
 		else{
 			is_ip = false;
 			cout << "This is not IP Packet" << endl;
-			printf("Ethernet type : %x\n", ntohs(ether_type));		
-		
+			cout << "Ethernet type : " << ether_type << endl << endl;	
 		}
 	}
 	
@@ -191,7 +182,9 @@ public:
 		}
 		else {
 			is_tcp = false;
-			cout << "This is not TCP Packet" << endl << endl;
+			cout << "This is not TCP Packet" << endl;
+			cout << "Ethernet type : " << ether_type << endl << endl;	
+
 		}
 	}
 	
@@ -212,12 +205,17 @@ public:
 	}
 };
 
-int main(){
+int main(int argc, char *argv[]){
 	tcpClass t;
 
 
+	if(argc < 2){
+		cout << "can't find dummy interface in given argument" << endl;
+		exit(1);
+	}
+
 	while(1){
-		t.pcapInitClass();
+		t.pcapInitClass(argv[1]);
 	
 		t.pcapGetPacket();
 
