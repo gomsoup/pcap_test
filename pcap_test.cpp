@@ -214,9 +214,9 @@ int main(int argc, char *argv[]){
 		exit(1);
 	}
 
-	while(1){
-		t.pcapInitClass(argv[1]);
+	t.pcapInitClass(argv[1]);
 	
+	while(1){
 		t.pcapGetPacket();
 
 		if(t.header->len != 0){
