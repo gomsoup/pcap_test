@@ -63,6 +63,10 @@ public:
 			fprintf(stderr, "Couldn't parse filter %s: %s\n", filter_exp, pcap_geterr(handle));
 			exit(2);
 		}
+		if (pcap_setfilter(handle, &fp) <0 ){
+        	fprintf(stderr, "Couldn't parse filter %s: %s\n", filter_exp, pcap_geterr(handle));
+			exit(2);
+        }
 	}
 
 	void pcapGetPacket(){
