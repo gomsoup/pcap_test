@@ -72,27 +72,7 @@ public:
 			exit(2);
 		}
 	}
-
-	void pcapPrintNet(){
-		char *netp;
-		struct in_addr addr;
-
-		addr.s_addr = net;
-		netp = inet_ntoa(addr);
-
-		cout << "NET : " << netp << endl;
-	}
 	
-	void pcapPrintMask(){
-		char *maskp;
-		struct in_addr addr;
-
-		addr.s_addr = mask;
-		maskp = inet_ntoa(addr);
-
-		cout << "MASK : " << maskp << endl;
-	}
-
 	void pcapGetPacket(){
 		res = pcap_next_ex(handle, &header, &packet);
 		cout << "Jacked a packet with legnth of [" << header->len << "]" << endl;
@@ -147,13 +127,15 @@ public:
 	int ip_hl;
 	int ip_id;
 	int ip_ttl;
-	char *ip_src;
-	char *ip_dst;
+	char ip_src[INET_ADDRSTRLEN];
+	char ip_dst[INET_ADDRSTRLEN];
 	const u_char *ipPacket;
 	struct ip *iph;
 
 	void ipInitClass(){
 		if (ether_type == ETHERTYPE_IP){
+
+
 			is_ip = true;
 			ipPacket = packet; 
 			ipPacket+=sizeof(struct ether_header);
@@ -163,8 +145,9 @@ public:
 			ip_hl = iph->ip_hl;
 			ip_id = ntohs(iph->ip_id);
 			ip_ttl = iph->ip_ttl;
-			ip_src = inet_ntoa(iph->ip_src); 
-			ip_dst = inet_ntoa(iph->ip_dst);
+			
+			inet_ntop(AF_INET, &iph->ip_src, ip_src, INET_ADDRSTRLEN);
+			inet_ntop(AF_INET, &iph->ip_dst, ip_dst, INET_ADDRSTRLEN);
 		}
 		else{
 			is_ip = false;
@@ -180,8 +163,8 @@ public:
 		cout << "Header Len  : " << ip_hl << endl;
 		cout << "ID          : " << ip_id << endl;
 		cout << "TTL         : " << ip_ttl << endl;
-		cout << "Src Address : " << inet_ntoa(iph->ip_src) << endl;
-		cout << "Dst Address : " << inet_ntoa(iph->ip_dst) << endl;
+		cout << "Src Address : " << ip_src << endl;
+		cout << "Dst Address : " << ip_dst << endl;
 	}
 };
 
